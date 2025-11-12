@@ -68,15 +68,17 @@ class _GameScreenState extends State<GameScreen> {
           final dx = d.velocity.pixelsPerSecond.dx;
           final dy = d.velocity.pixelsPerSecond.dy;
           if (dx.abs() > dy.abs()) {
-            if (dx > 0)
+            if (dx > 0) {
               move(0, 1);
-            else
+            } else {
               move(0, -1);
+            }
           } else {
-            if (dy > 0)
+            if (dy > 0) {
               move(1, 0);
-            else
+            } else {
               move(-1, 0);
+            }
           }
         },
         child: Column(

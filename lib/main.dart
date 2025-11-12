@@ -6,6 +6,8 @@ void main() {
 }
 
 class EnergyGridApp extends StatelessWidget {
+  const EnergyGridApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../logic/dijkstra.dart';
 import '../models/grid.dart';
 import '../models/cell.dart';
 import 'game_screen.dart';
@@ -14,8 +15,8 @@ class GridSetupScreen extends StatefulWidget {
 }
 
 class _GridSetupScreenState extends State<GridSetupScreen> {
-  int rows = 5;
-  int cols = 7;
+  int rows = 4;
+  int cols = 4;
   late GridModel grid;
   EditMode mode = EditMode.setStart;
 
@@ -27,11 +28,24 @@ class _GridSetupScreenState extends State<GridSetupScreen> {
 
   void rebuild() => setState(() => grid = GridModel(rows: rows, cols: cols));
 
+  void clearGrid() {
+    setState(() {
+      grid.reset();
+    });
+  }
+
   void startGame() {
+    print(dijkstraMinCost(grid).toString());
+    if (dijkstraMinCost(grid) <= 0 || dijkstraMinCost(grid) >= 100000) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("we can't solve this grid ")));
+      return;
+    }
     if (grid.find(CellType.start) == null || grid.find(CellType.goal) == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('حدد نقطة البداية والنهاية أولاً')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('select start and Goal cell')));
       return;
     }
     Navigator.push(
@@ -71,7 +85,7 @@ class _GridSetupScreenState extends State<GridSetupScreen> {
     final gridWidth = min(MediaQuery.of(context).size.width - 40, 700.0);
     final cellSize = gridWidth / cols;
     return Scaffold(
-      appBar: AppBar(title: const Text('Energy Grid — إعداد الشبكة')),
+      appBar: AppBar(title: const Text('Energy Grid'), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -79,6 +93,10 @@ class _GridSetupScreenState extends State<GridSetupScreen> {
             Wrap(
               spacing: 10,
               children: [
+                FilledButton(
+                  onPressed: clearGrid,
+                  child: const Icon(Icons.clear),
+                ),
                 ElevatedButton(
                   onPressed: startGame,
                   child: const Text('Start Manual Solve'),
@@ -90,6 +108,14 @@ class _GridSetupScreenState extends State<GridSetupScreen> {
                 ElevatedButton(
                   onPressed: () => setState(() => mode = EditMode.setGoal),
                   child: const Text('Set Goal'),
+                ),
+                ElevatedButton(
+                  onPressed: () => setState(() => mode = EditMode.setWall),
+                  child: const Text('Set wall'),
+                ),
+                ElevatedButton(
+                  onPressed: () => setState(() => mode = EditMode.setWeighted),
+                  child: const Text('Set weighted'),
                 ),
               ],
             ),
