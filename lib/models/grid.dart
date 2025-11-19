@@ -24,22 +24,6 @@ class GridModel {
     }
   }
 
-  void randomize({double wallProb = 0.12, double weightProb = 0.18}) {
-    final rnd = Random();
-    for (var r = 0; r < rows; r++) {
-      for (var c = 0; c < cols; c++) {
-        final p = rnd.nextDouble();
-        if (p < wallProb) {
-          cells[r][c].type = CellType.wall;
-        } else if (p < wallProb + weightProb) {
-          cells[r][c].type = CellType.weighted;
-        } else {
-          cells[r][c].type = CellType.empty;
-        }
-      }
-    }
-  }
-
   Cell? find(CellType t) {
     for (var r = 0; r < rows; r++) {
       for (var c = 0; c < cols; c++) {
