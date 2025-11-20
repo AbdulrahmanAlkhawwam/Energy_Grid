@@ -47,6 +47,25 @@ class _GridSetupScreenState extends State<GridSetupScreen> {
     });
   }
 
+  void getNextAvalible() {
+    final Cell cell = grid.cells
+        .firstWhere((rows) => rows.any((cell) => cell.type == CellType.start))
+        .first;
+
+    if (grid.cells[cell.col][cell.row + 1].type == CellType.empty) {
+      print("cell column ${cell.col}, cell row ${cell.row + 1}");
+    }
+    if (grid.cells[cell.col + 1][cell.row].type == CellType.empty) {
+      print("cell column ${cell.col + 1}, cell row ${cell.row}");
+    }
+    if (grid.cells[cell.col - 1][cell.row].type == CellType.empty) {
+      print("cell column ${cell.col - 1}, cell row ${cell.row}");
+    }
+    if (grid.cells[cell.col][cell.row - 1].type == CellType.empty) {
+      print("cell column ${cell.col}, cell row ${cell.row - 1}");
+    }
+  }
+
   void gridRandom(int level) {
     setState(() {
       GridRandomizer.randomizeWithLevel(grid, level);
@@ -290,6 +309,24 @@ class _GridSetupScreenState extends State<GridSetupScreen> {
           ),
           child: Text(
             'Start Game'.toUpperCase(),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          ),
+        ),
+        FilledButton(
+          onPressed: getNextAvalible,
+          style: ButtonStyle(
+            backgroundColor: WidgetStateProperty.all(GridColors.start),
+            foregroundColor: WidgetStateProperty.all(GridColors.background),
+
+            minimumSize: WidgetStateProperty.all<Size>(
+              const Size.fromHeight(56),
+            ),
+            shape: WidgetStateProperty.all<RoundedRectangleBorder>(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            ),
+          ),
+          child: Text(
+            'get next cell'.toUpperCase(),
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
           ),
         ),
