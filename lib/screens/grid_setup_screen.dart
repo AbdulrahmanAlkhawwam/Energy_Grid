@@ -1,12 +1,11 @@
 import 'dart:math';
-import 'package:energy_grid/logic/grid_randomizer.dart';
-import 'package:energy_grid/style/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
-
-import '../logic/dijkstra.dart';
-import '../models/grid.dart';
-import '../models/cell.dart';
+import 'package:energy_grid/logic/grid_randomizer.dart';
+import 'package:energy_grid/logic/dijkstra.dart';
+import 'package:energy_grid/models/grid.dart';
+import 'package:energy_grid/models/cell.dart';
+import 'package:energy_grid/style/colors.dart';
 import 'game_screen.dart';
 
 enum EditMode { setStart, setGoal, setWeighted, setWall, setEmpty }
@@ -20,10 +19,12 @@ class GridSetupScreen extends StatefulWidget {
 
 class _GridSetupScreenState extends State<GridSetupScreen> {
   int rows = 4;
-  String? selectedLevel;
   int cols = 4;
+  String? selectedLevel;
   late GridModel grid;
   EditMode mode = EditMode.setStart;
+
+  final List<String> levels = ["Easy", "Medium", "Hard", "Extreme"];
 
   @override
   void initState() {
@@ -31,13 +32,10 @@ class _GridSetupScreenState extends State<GridSetupScreen> {
     grid = GridModel(rows: rows, cols: cols);
   }
 
-  void rebuild() => setState(() => grid = GridModel(rows: rows, cols: cols));
+  void rebuildGrid() =>
+      setState(() => grid = GridModel(rows: rows, cols: cols));
 
-  void clearGrid() {
-    setState(() {
-      grid.reset();
-    });
-  }
+  void resetGrid() => setState(() => grid.reset());
 
   void resetToDefault() {
     setState(() {
@@ -47,50 +45,15 @@ class _GridSetupScreenState extends State<GridSetupScreen> {
     });
   }
 
-  void getNextAvalible() {
-    final Cell cell = grid.cells
-        .firstWhere((rows) => rows.any((cell) => cell.type == CellType.start))
-        .first;
+  void updateRows(double value) => setState(() {
+    rows = value.toInt();
+    grid = GridModel(rows: rows, cols: cols);
+  });
 
-    if (grid.cells[cell.col][cell.row + 1].type == CellType.empty) {
-      print("cell column ${cell.col}, cell row ${cell.row + 1}");
-    }
-    if (grid.cells[cell.col + 1][cell.row].type == CellType.empty) {
-      print("cell column ${cell.col + 1}, cell row ${cell.row}");
-    }
-    if (grid.cells[cell.col - 1][cell.row].type == CellType.empty) {
-      print("cell column ${cell.col - 1}, cell row ${cell.row}");
-    }
-    if (grid.cells[cell.col][cell.row - 1].type == CellType.empty) {
-      print("cell column ${cell.col}, cell row ${cell.row - 1}");
-    }
-  }
-
-  void gridRandom(int level) {
-    setState(() {
-      GridRandomizer.randomizeWithLevel(grid, level);
-    });
-  }
-
-  void startGame() {
-    print(dijkstraMinCost(grid).toString());
-    if (dijkstraMinCost(grid) <= 0 || dijkstraMinCost(grid) >= 100000) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("we can't solve this grid ")));
-      return;
-    }
-    if (grid.find(CellType.start) == null || grid.find(CellType.goal) == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('select start and Goal cell')));
-      return;
-    }
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => GameScreen(gridModel: grid)),
-    );
-  }
+  void updateCols(double value) => setState(() {
+    cols = value.toInt();
+    grid = GridModel(rows: rows, cols: cols);
+  });
 
   void setCell(int r, int c) {
     setState(() {
@@ -118,18 +81,252 @@ class _GridSetupScreenState extends State<GridSetupScreen> {
     });
   }
 
-  void updateRows(double value) {
-    setState(() {
-      rows = value.toInt();
-      grid = GridModel(rows: rows, cols: cols);
-    });
+  void gridRandom(int level) =>
+      setState(() => GridRandomizer.randomizeWithLevel(grid, level));
+
+  void startGame() {
+    final minCost = dijkstraMinCost(grid);
+    if (minCost <= 0 || minCost >= 100000) {
+      _showSnack("We can't solve this grid");
+      return;
+    }
+    if (grid.find(CellType.start) == null || grid.find(CellType.goal) == null) {
+      _showSnack("Select start and goal cell");
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => GameScreen(gridModel: grid)),
+    );
   }
 
-  void updateCols(double value) {
-    setState(() {
-      cols = value.toInt();
-      grid = GridModel(rows: rows, cols: cols);
-    });
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _buildRowsBox() {
+    return SpinBox(
+      min: 4,
+      max: 10,
+      value: rows.toDouble(),
+      step: 1,
+      onChanged: updateRows,
+      decoration: const InputDecoration(labelText: "Rows"),
+    );
+  }
+
+  Widget _buildColsBox() {
+    return SpinBox(
+      min: 4,
+      max: 10,
+      value: cols.toDouble(),
+      step: 1,
+      onChanged: updateCols,
+      decoration: const InputDecoration(labelText: "Cols"),
+    );
+  }
+
+  Widget _buildLevelDropdown() {
+    return DropdownButtonFormField<String>(
+      initialValue: selectedLevel,
+      hint: const Text("Select Difficulty Level"),
+      isExpanded: true,
+      items: levels
+          .map((level) => DropdownMenuItem(value: level, child: Text(level)))
+          .toList(),
+      onChanged: (value) {
+        if (value == null) return;
+        setState(() {
+          selectedLevel = value;
+          final levelIndex = levels.indexOf(value) + 1;
+          gridRandom(levelIndex);
+        });
+      },
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: GridColors.container,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
+    );
+  }
+
+  Widget _buildStartButton() {
+    return FilledButton(
+      onPressed: startGame,
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(GridColors.start),
+        foregroundColor: WidgetStateProperty.all(GridColors.background),
+        minimumSize: WidgetStateProperty.all(const Size.fromHeight(56)),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        ),
+      ),
+      child: const Text(
+        'Start Game',
+        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+      ),
+    );
+  }
+
+  Widget _buildSettings() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildRowsBox()),
+            const SizedBox(width: 12),
+            Expanded(child: _buildColsBox()),
+            const SizedBox(width: 12),
+            FilledButton(
+              onPressed: resetToDefault,
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.all(GridColors.wall),
+                foregroundColor: MaterialStateProperty.all(Colors.white),
+                minimumSize: MaterialStateProperty.all(const Size(24, 56)),
+                shape: MaterialStateProperty.all(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              child: const Icon(Icons.restart_alt_outlined, size: 22),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(child: _buildLevelDropdown()),
+            if (selectedLevel != null) ...[
+              const SizedBox(width: 12),
+              FilledButton(
+                onPressed: () {
+                  if (selectedLevel == null) return;
+                  final levelIndex = levels.indexOf(selectedLevel!) + 1;
+                  gridRandom(levelIndex);
+                },
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all(GridColors.empty),
+                  foregroundColor: MaterialStateProperty.all(Colors.white),
+                  minimumSize: MaterialStateProperty.all(const Size(56, 56)),
+                  shape: MaterialStateProperty.all(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                child: const Icon(Icons.shuffle, size: 22),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildStartButton(),
+      ],
+    );
+  }
+
+  Widget _buildGrid(double width, double cellSize) {
+    return Expanded(
+      child: Container(
+        width: width,
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: GridColors.container,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: List.generate(rows, (r) {
+            return Expanded(
+              child: Row(
+                children: List.generate(cols, (c) {
+                  final cell = grid.cells[r][c];
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () => setCell(r, c),
+                      onDoubleTap: () {
+                        if (cell.type == CellType.empty) {
+                          setCell(r, c);
+                          cell.type = CellType.weighted;
+                        }
+                      },
+                      onLongPress: () {
+                        if (cell.type == CellType.empty) {
+                          setCell(r, c);
+                          cell.type = CellType.wall;
+                        }
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: _cellColor(cell.type),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            _cellIcon(cell.type),
+                            color: _cellIconColor(cell.type),
+                            size: 32,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Color _cellColor(CellType t) {
+    switch (t) {
+      case CellType.start:
+        return GridColors.start;
+      case CellType.goal:
+        return GridColors.goal;
+      case CellType.weighted:
+        return GridColors.weighted;
+      case CellType.wall:
+        return GridColors.wall;
+      default:
+        return GridColors.background;
+    }
+  }
+
+  IconData? _cellIcon(CellType t) {
+    switch (t) {
+      case CellType.start:
+        return Icons.play_arrow;
+      case CellType.goal:
+        return Icons.flag;
+      case CellType.weighted:
+        return Icons.bolt;
+      case CellType.wall:
+        return Icons.landscape;
+      default:
+        return null;
+    }
+  }
+
+  Color _cellIconColor(CellType t) {
+    switch (t) {
+      case CellType.start:
+        return Colors.tealAccent;
+      case CellType.goal:
+        return Colors.orangeAccent;
+      case CellType.weighted:
+        return Colors.amber;
+      case CellType.wall:
+        return Colors.indigo;
+      default:
+        return Colors.transparent;
+    }
   }
 
   @override
@@ -139,24 +336,23 @@ class _GridSetupScreenState extends State<GridSetupScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Energy Grid'.toUpperCase(),
-          style: TextStyle(fontWeight: FontWeight.w100),
+        title: const Text(
+          'Energy Grid',
+          style: TextStyle(fontWeight: FontWeight.w300),
         ),
         centerTitle: true,
         backgroundColor: GridColors.background,
       ),
       body: Padding(
         padding: EdgeInsets.only(
-          left: 24.0,
-          right: 24.0,
-          bottom: 24.0 + MediaQuery.of(context).padding.bottom,
+          left: 24,
+          right: 24,
+          bottom: 24 + MediaQuery.of(context).padding.bottom,
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final isMobileLayout = constraints.maxWidth < 600;
-
-            return isMobileLayout
+            final isMobile = constraints.maxWidth < 600;
+            return isMobile
                 ? Column(
                     children: [
                       _buildGrid(gridWidth, cellSize),
@@ -176,316 +372,5 @@ class _GridSetupScreenState extends State<GridSetupScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildSettings() {
-    ///  levels = ["Easy", "Medium", "Hard", "Extreme"];
-
-    return Column(
-      children: [
-        Row(
-          spacing: 16,
-          children: [
-            Expanded(
-              child: SpinBox(
-                min: 4,
-                max: 10,
-                value: rows.toDouble(),
-                decimals: 0,
-                step: 1,
-                onChanged: updateRows,
-                decoration: const InputDecoration(labelText: "Rows"),
-              ),
-            ),
-            Expanded(
-              child: SpinBox(
-                min: 4,
-                max: 10,
-                value: cols.toDouble(),
-                decimals: 0,
-                step: 1,
-                onChanged: updateCols,
-                decoration: const InputDecoration(labelText: "Cols"),
-              ),
-            ),
-
-            FilledButton(
-              style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.all(GridColors.wall),
-                foregroundColor: WidgetStateProperty.all(Colors.white),
-                shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-
-                minimumSize: WidgetStateProperty.all<Size>(const Size(24, 56)),
-              ),
-              onPressed: resetToDefault,
-              child: const Icon(Icons.restart_alt_outlined, size: 22),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16.0),
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                decoration: BoxDecoration(
-                  color: GridColors.container,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: DropdownButton<String>(
-                  value: selectedLevel,
-                  hint: const Text("Select Difficulty Level"),
-                  isExpanded: true,
-                  underline: const SizedBox(),
-                  items: ["Easy", "Medium", "Hard", "Extreme"].map((level) {
-                    return DropdownMenuItem(value: level, child: Text(level));
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() {
-                      selectedLevel = value;
-                      final levelIndex =
-                          ["Easy", "Medium", "Hard", "Extreme"].indexOf(value) +
-                          1;
-                      gridRandom(levelIndex);
-                    });
-                  },
-                ),
-              ),
-            ),
-
-            const SizedBox(width: 16),
-
-            FilledButton(
-              style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.all(GridColors.empty),
-                foregroundColor: WidgetStateProperty.all(Colors.white),
-
-                shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                minimumSize: WidgetStateProperty.all<Size>(const Size(24, 56)),
-              ),
-              onPressed: () {
-                if (selectedLevel == null) return;
-
-                final levelIndex =
-                    [
-                      "Easy",
-                      "Medium",
-                      "Hard",
-                      "Extreme",
-                    ].indexOf(selectedLevel!) +
-                    1;
-
-                gridRandom(levelIndex);
-              },
-              child: const Icon(Icons.shuffle, size: 22),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 16.0),
-
-        // ----------------------------------------------------
-        FilledButton(
-          onPressed: startGame,
-          style: ButtonStyle(
-            backgroundColor: WidgetStateProperty.all(GridColors.start),
-            foregroundColor: WidgetStateProperty.all(GridColors.background),
-
-            minimumSize: WidgetStateProperty.all<Size>(
-              const Size.fromHeight(56),
-            ),
-            shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            ),
-          ),
-          child: Text(
-            'Start Game'.toUpperCase(),
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-          ),
-        ),
-        FilledButton(
-          onPressed: getNextAvalible,
-          style: ButtonStyle(
-            backgroundColor: WidgetStateProperty.all(GridColors.start),
-            foregroundColor: WidgetStateProperty.all(GridColors.background),
-
-            minimumSize: WidgetStateProperty.all<Size>(
-              const Size.fromHeight(56),
-            ),
-            shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            ),
-          ),
-          child: Text(
-            'get next cell'.toUpperCase(),
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-          ),
-        ),
-        // Wrap(
-        //   spacing: 16,
-        //   runSpacing: 8,
-        //   children: [
-        //     FilledButton(onPressed: startGame, child: const Text('Start')),
-
-        //     ElevatedButton(
-        //       onPressed: () => setState(() => mode = EditMode.setStart),
-        //       child: const Text('Set Start'),
-        //     ),
-        //     ElevatedButton(
-        //       onPressed: () => setState(() => mode = EditMode.setGoal),
-        //       child: const Text('Set Goal'),
-        //     ),
-        //     ElevatedButton(
-        //       onPressed: () => setState(() => mode = EditMode.setWall),
-        //       child: const Text('Set Wall'),
-        //     ),
-        //     ElevatedButton(
-        //       onPressed: () => setState(() => mode = EditMode.setWeighted),
-        //       child: const Text('Set Weighted'),
-        //     ),
-        //   ],
-        // ),
-      ],
-    );
-  }
-
-  Widget _buildGrid(double gridWidth, double cellSize) {
-    return Expanded(
-      child: Container(
-        width: gridWidth,
-        padding: EdgeInsets.all(
-          cols * rows > 100
-              ? 2
-              : cols * rows > 35
-              ? 4
-              : 6,
-        ),
-        decoration: BoxDecoration(
-          color: GridColors.container,
-          borderRadius: BorderRadius.circular(
-            cols * rows > 100
-                ? 4
-                : cols * rows > 35
-                ? 8
-                : 16,
-          ),
-        ),
-        child: Column(
-          children: List.generate(rows, (r) {
-            return Expanded(
-              child: Row(
-                children: List.generate(cols, (c) {
-                  final cell = grid.cells[r][c];
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          if (cell.type == CellType.start) {
-                            // إذا نقرت على الـ Start نفسها → إلغاؤها
-                            cell.type = CellType.empty;
-                          } else if (!grid.cells.any(
-                            (c) => c.any((c) => c.type == CellType.start),
-                          )) {
-                            // تعيين Start إذا لم يكن موجود
-                            cell.type = CellType.start;
-                          } else if (!grid.cells.any(
-                                (c) => c.any((c) => c.type == CellType.goal),
-                              ) ||
-                              cell.type == CellType.goal) {
-                            // تعيين Goal إذا لم يكن موجود أو تغيير الخلية الحالية Goal
-                            final prevGoal = grid.find(CellType.goal);
-                            if (prevGoal != null && prevGoal != cell)
-                              prevGoal.type = CellType.empty;
-                            cell.type = CellType.goal;
-                          }
-                        });
-                      },
-                      onDoubleTap: () {
-                        setState(() {
-                          if (cell.type == CellType.empty) {
-                            cell.type = CellType.weighted;
-                          }
-                        });
-                      },
-                      onLongPress: () {
-                        setState(() {
-                          if (cell.type == CellType.empty) {
-                            cell.type = CellType.wall;
-                          }
-                        });
-                      },
-                      child: Container(
-                        margin: EdgeInsets.all(
-                          cols * rows > 100
-                              ? 2
-                              : cols * rows > 35
-                              ? 3
-                              : 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _color(cell.type),
-                          borderRadius: BorderRadius.circular(
-                            cols * rows > 100
-                                ? 2
-                                : cols * rows > 35
-                                ? 4
-                                : 6,
-                          ),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            cell.type == CellType.weighted
-                                ? Icons.bolt
-                                : cell.type == CellType.start
-                                ? Icons.play_arrow
-                                : cell.type == CellType.goal
-                                ? Icons.flag
-                                : cell.type == CellType.wall
-                                ? Icons.landscape
-                                : null,
-                            color: cell.type == CellType.weighted
-                                ? Colors.amber
-                                : cell.type == CellType.start
-                                ? Colors.tealAccent
-                                : cell.type == CellType.goal
-                                ? Colors.orangeAccent
-                                : Colors.indigo,
-                            size: 32,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            );
-          }),
-        ),
-      ),
-    );
-  }
-
-  Color _color(CellType t) {
-    switch (t) {
-      case CellType.start:
-        return GridColors.start;
-      case CellType.goal:
-        return GridColors.goal;
-      case CellType.weighted:
-        return GridColors.weighted;
-      case CellType.wall:
-        return GridColors.wall;
-      default:
-        return GridColors.background;
-    }
   }
 }
