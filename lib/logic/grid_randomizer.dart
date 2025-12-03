@@ -3,14 +3,12 @@ import '../models/grid.dart';
 import '../models/cell.dart';
 
 class GridRandomizer {
-  /// Main function: randomize the grid with difficulty level
   static void randomizeWithLevel(GridModel grid, int level) {
     final rows = grid.rows;
     final cols = grid.cols;
-    final cells = grid.cells;
     final rnd = Random();
 
-    // --- difficulty probabilities ---
+    // Difficulty probabilities
     double baseWallProb;
     double baseWeightProb;
 
@@ -36,14 +34,12 @@ class GridRandomizer {
         baseWeightProb = 0.18;
     }
 
-    // --- fill all as wall first ---
-    for (var r = 0; r < rows; r++) {
-      for (var c = 0; c < cols; c++) {
-        cells[r][c].type = CellType.wall;
-      }
+    // Fill all as wall
+    for (final cell in grid.cells) {
+      cell.type = CellType.wall;
     }
 
-    // --- pick Start & Goal with minimum distance depending on level ---
+    // Pick start & goal
     int startR = rnd.nextInt(rows);
     int startC = rnd.nextInt(cols);
     int goalR, goalC;
@@ -68,10 +64,10 @@ class GridRandomizer {
     } while ((startR == goalR && startC == goalC) ||
         ((startR - goalR).abs() + (startC - goalC).abs()) < minDist);
 
-    cells[startR][startC].type = CellType.start;
-    cells[goalR][goalC].type = CellType.goal;
+    grid.get(startR, startC).type = CellType.start;
+    grid.get(goalR, goalC).type = CellType.goal;
 
-    // --- carve main path ---
+    // Carve main path
     List<Point<int>> path = _carvePath(
       rows,
       cols,
@@ -81,23 +77,25 @@ class GridRandomizer {
       goalC,
       level,
     );
+
     for (final p in path) {
-      if (cells[p.x][p.y].type != CellType.start &&
-          cells[p.x][p.y].type != CellType.goal) {
-        cells[p.x][p.y].type = CellType.empty;
+      final cell = grid.get(p.x, p.y);
+      if (cell.type != CellType.start && cell.type != CellType.goal) {
+        cell.type = CellType.empty;
       }
     }
 
-    // --- compute distance to path ---
+    // Compute distance to path
     final dist = _computeDistToPath(rows, cols, path);
 
-    // --- fill other cells based on level + distance ---
     bool placedWeighted = false;
 
     for (var r = 0; r < rows; r++) {
       for (var c = 0; c < cols; c++) {
-        if (cells[r][c].type == CellType.start ||
-            cells[r][c].type == CellType.goal ||
+        final cell = grid.get(r, c);
+
+        if (cell.type == CellType.start ||
+            cell.type == CellType.goal ||
             path.any((p) => p.x == r && p.y == c)) {
           continue;
         }
@@ -119,32 +117,29 @@ class GridRandomizer {
 
         final p = rnd.nextDouble();
         if (p < wallProb) {
-          cells[r][c].type = CellType.wall;
+          cell.type = CellType.wall;
         } else if (p < wallProb + weightProb) {
-          cells[r][c].type = CellType.weighted;
+          cell.type = CellType.weighted;
           placedWeighted = true;
         } else {
-          cells[r][c].type = CellType.empty;
+          cell.type = CellType.empty;
         }
       }
     }
 
-    // ensure at least one weighted
+    // Ensure at least one weighted cell
     if (!placedWeighted) {
-      outer:
-      for (var r = 0; r < rows; r++) {
-        for (var c = 0; c < cols; c++) {
-          if (cells[r][c].type == CellType.empty) {
-            cells[r][c].type = CellType.weighted;
-            break outer;
-          }
+      for (final cell in grid.cells) {
+        if (cell.type == CellType.empty) {
+          cell.type = CellType.weighted;
+          break;
         }
       }
     }
   }
 
   // -------------------------------------------------------------------------
-  // ---------------------- Helper Functions ---------------------------------
+  // Helper Functions
   // -------------------------------------------------------------------------
 
   static List<Point<int>> _carvePath(
@@ -158,10 +153,7 @@ class GridRandomizer {
   ) {
     final rnd = Random();
 
-    final bias = (0.85 - 0.15 * (level - 1)).clamp(
-      0.2,
-      0.85,
-    ); // higher level -> longer path
+    final bias = (0.85 - 0.15 * (level - 1)).clamp(0.2, 0.85);
     final extraLength = ((rows + cols) * (0.10 * (level - 1))).round();
     final manhattan = (sr - gr).abs() + (sc - gc).abs();
     final targetLength = manhattan + extraLength;
@@ -216,7 +208,7 @@ class GridRandomizer {
       if (cr == gr && cc == gc && path.length >= targetLength) break;
     }
 
-    // if goal not reached, connect directly
+    // Ensure reaching the goal
     if (!path.any((p) => p.x == gr && p.y == gc)) {
       cr = path.last.x;
       cc = path.last.y;
@@ -242,6 +234,7 @@ class GridRandomizer {
     List<Point<int>> path,
   ) {
     final dist = List.generate(rows, (_) => List<int>.filled(cols, 99999));
+
     for (var r = 0; r < rows; r++) {
       for (var c = 0; c < cols; c++) {
         for (final p in path) {

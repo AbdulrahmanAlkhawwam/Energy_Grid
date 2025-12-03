@@ -6,6 +6,8 @@ class GridColors {
   static const Color background = Color(0xFF0F1E1E);
   static const Color container = Color.fromARGB(255, 27, 54, 54);
   static const Color start = Color.fromARGB(255, 22, 206, 68); // Bright green
+  static const Color player = Color.fromARGB(100, 22, 206, 68); // Medium green
+
   static const Color goal = Color(0xFFFF3B30); // Strong red
   static const Color empty = Color(0xFF027333); // Normal green
   static const Color weighted = Color(0xFF025939); // Dark green
