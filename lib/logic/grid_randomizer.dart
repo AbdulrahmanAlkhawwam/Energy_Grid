@@ -8,7 +8,6 @@ class GridRandomizer {
     final cols = grid.cols;
     final rnd = Random();
 
-    // Difficulty probabilities
     double baseWallProb;
     double baseWeightProb;
 
@@ -34,12 +33,10 @@ class GridRandomizer {
         baseWeightProb = 0.18;
     }
 
-    // Fill all as wall
     for (final cell in grid.cells) {
       cell.type = CellType.wall;
     }
 
-    // Pick start & goal
     int startR = rnd.nextInt(rows);
     int startC = rnd.nextInt(cols);
     int goalR, goalC;
@@ -67,7 +64,6 @@ class GridRandomizer {
     grid.get(startR, startC).type = CellType.start;
     grid.get(goalR, goalC).type = CellType.goal;
 
-    // Carve main path
     List<Point<int>> path = _carvePath(
       rows,
       cols,
@@ -85,7 +81,6 @@ class GridRandomizer {
       }
     }
 
-    // Compute distance to path
     final dist = _computeDistToPath(rows, cols, path);
 
     bool placedWeighted = false;
@@ -127,7 +122,6 @@ class GridRandomizer {
       }
     }
 
-    // Ensure at least one weighted cell
     if (!placedWeighted) {
       for (final cell in grid.cells) {
         if (cell.type == CellType.empty) {
@@ -138,9 +132,6 @@ class GridRandomizer {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Helper Functions
-  // -------------------------------------------------------------------------
 
   static List<Point<int>> _carvePath(
     int rows,
@@ -208,7 +199,6 @@ class GridRandomizer {
       if (cr == gr && cc == gc && path.length >= targetLength) break;
     }
 
-    // Ensure reaching the goal
     if (!path.any((p) => p.x == gr && p.y == gc)) {
       cr = path.last.x;
       cc = path.last.y;

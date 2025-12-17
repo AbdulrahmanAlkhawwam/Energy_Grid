@@ -5,9 +5,8 @@ import '../models/grid.dart';
 import '../models/cell.dart';
 import '../logic/bfs.dart';
 import '../logic/dfs.dart';
-import '../logic/aStar.dart';
+
 import '../style/colors.dart';
-import 'result_screen.dart';
 
 class GameScreen extends StatefulWidget {
   final GridModel gridModel;
@@ -31,9 +30,6 @@ class _GameScreenState extends State<GameScreen> {
     player = grid.find(CellType.start) ?? grid.get(0, 0);
   }
 
-  // -----------------------------
-  // Normal Movement
-  // -----------------------------
   void move(int dr, int dc) {
     final nr = player.row + dr, nc = player.col + dc;
     if (nr < 0 || nc < 0 || nr >= grid.rows || nc >= grid.cols) return;
@@ -52,11 +48,7 @@ class _GameScreenState extends State<GameScreen> {
     if (target.type == CellType.goal) endGame(totalCost);
   }
 
-  // -----------------------------
-  // Auto-solver Button Handler
-  // -----------------------------
-  void _runSolver(List<Cell> Function(GridModel) solver) {
-    // restore grid (remove previous pathTaken except player path)
+ void _runSolver(List<Cell> Function(GridModel) solver) {
     for (var c in grid.cells) {
       if (c.type == CellType.pathTaken) {
         c.type = CellType.empty;
@@ -68,7 +60,6 @@ class _GameScreenState extends State<GameScreen> {
 
     int cost = 0;
 
-    // Mark path
     for (int i = 1; i < path.length; i++) {
       final c = path[i];
       if (c.type != CellType.start && c.type != CellType.goal) {
@@ -76,45 +67,10 @@ class _GameScreenState extends State<GameScreen> {
       }
       cost += c.cost();
     }
-
-    // A* gives optimal cost
-    final optimalPath = AStar.solve(grid);
-    final optimalCost = optimalPath.fold(0, (sum, cell) => sum + cell.cost());
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ResultScreen(
-          successOptimal: cost <= optimalCost,
-          playerCost: cost,
-          optimalCost: optimalCost,
-        ),
-      ),
-    );
   }
 
-  // -----------------------------
-  // End game (manual path)
-  // -----------------------------
-  void endGame(int playerCost) {
-    final optimalPath = AStar.solve(grid);
-    final optimalCost = optimalPath.fold(0, (sum, cell) => sum + cell.cost());
+  void endGame(int playerCost) {}
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ResultScreen(
-          successOptimal: playerCost <= optimalCost,
-          playerCost: playerCost,
-          optimalCost: optimalCost,
-        ),
-      ),
-    );
-  }
-
-  // -----------------------------
-  // UI
-  // -----------------------------
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -127,28 +83,29 @@ class _GameScreenState extends State<GameScreen> {
         backgroundColor: Colors.transparent,
       ),
 
-      // -------------------------------------
-      // Buttons + Grid
-      // -------------------------------------
       body: Column(
         children: [
           const SizedBox(height: 10),
 
-          // Buttons Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _algoButton("UCS", () => _runSolver(UCS.solve)),
-              const SizedBox(width: 10),
-              _algoButton("BFS", () => _runSolver(BFS.solve)),
-              const SizedBox(width: 10),
-              _algoButton("DFS", () => _runSolver(DFS.solve)),
-              const SizedBox(width: 10),
-              _algoButton("A*", () => _runSolver(AStar.solve)),
-            ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: _algoButton("UCS", () => _runSolver(UCS.solve)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _algoButton("BFS", () => _runSolver(BFS.solve)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _algoButton("DFS", () => _runSolver(DFS.solve)),
+                ),
+              ],
+            ),
           ),
-
-          const SizedBox(height: 20),
 
           Expanded(
             child: Padding(
@@ -218,9 +175,6 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  // -----------------------------
-  // Small UI Helpers
-  // -----------------------------
   Widget _algoButton(String name, VoidCallback onTap) {
     return ElevatedButton(
       onPressed: onTap,

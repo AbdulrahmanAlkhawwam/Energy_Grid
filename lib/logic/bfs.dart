@@ -5,6 +5,8 @@ class BFS {
   static List<Cell> solve(GridModel grid) {
     final start = grid.find(CellType.start);
     final goal = grid.find(CellType.goal);
+    int visitedCount = 0;
+    int generatedCount = 0;
     if (start == null || goal == null) return [];
 
     final queue = <Cell>[start];
@@ -23,8 +25,11 @@ class BFS {
 
     while (queue.isNotEmpty) {
       final current = queue.removeAt(0);
+      visitedCount++;
       print(current.index);
       if (current == goal) {
+        print("BFS Visited: $visitedCount");
+        print("BFS Generated: $generatedCount");
         return _reconstructPath(parent, goal);
       }
 
@@ -35,58 +40,22 @@ class BFS {
         if (!grid.inBounds(nr, nc)) continue;
 
         final next = grid.get(nr, nc);
-        if (next.type == CellType.wall) continue; // can't pass wall
+        if (next.type == CellType.wall) continue;
 
         final key = '$nr,$nc';
         if (!visited.containsKey(key)) {
           visited[key] = next;
           parent[key] = current;
           queue.add(next);
+          generatedCount++;
         }
       }
     }
-
+    print("BFS FAILED");
+    print("BFS Visited: $visitedCount");
+    print("BFS Generated: $generatedCount");
     return [];
   }
-
-  // List<Cell> bfs(GridModel grid) {
-  //   final queue = Queue<List<Cell>>();
-  //   final start = grid.getStart();
-  //   final goal = grid.getGoal();
-  //
-  //   int visitedCount = 0;
-  //   int generatedCount = 0;
-  //
-  //   queue.add([start]);
-  //   final visited = <String>{start.id};
-  //
-  //   while (queue.isNotEmpty) {
-  //     final path = queue.removeFirst();
-  //     final cell = path.last;
-  //
-  //     visitedCount++;
-  //
-  //     if (cell.id == goal.id) {
-  //       print("BFS Visited: $visitedCount");
-  //       print("BFS Generated: $generatedCount");
-  //       return path;
-  //     }
-  //
-  //     for (var next in grid.getNeighbors(cell)) {
-  //       if (!visited.contains(next.id)) {
-  //         visited.add(next.id);
-  //         final newPath = [...path, next];
-  //         queue.add(newPath);
-  //         generatedCount++;
-  //       }
-  //     }
-  //   }
-  //
-  //   print("BFS FAILED");
-  //   print("BFS Visited: $visitedCount");
-  //   print("BFS Generated: $generatedCount");
-  //   return [];
-  // }
 
   static List<Cell> _reconstructPath(Map<String, Cell?> parent, Cell goal) {
     final path = <Cell>[];

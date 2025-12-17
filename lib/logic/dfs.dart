@@ -49,45 +49,6 @@ class DFS {
     return _reconstructPath(parent, goal);
   }
 
-  // List<Cell> dfs(GridModel grid) {
-  //   final stack = <List<Cell>>[];
-  //   final start = grid.getStart();
-  //   final goal = grid.getGoal();
-  //
-  //   int visitedCount = 0;
-  //   int generatedCount = 0;
-  //
-  //   stack.add([start]);
-  //   final visited = <String>{start.id};
-  //
-  //   while (stack.isNotEmpty) {
-  //     final path = stack.removeLast();
-  //     final cell = path.last;
-  //
-  //     visitedCount++;
-  //
-  //     if (cell.id == goal.id) {
-  //       print("DFS Visited: $visitedCount");
-  //       print("DFS Generated: $generatedCount");
-  //       return path;
-  //     }
-  //
-  //     for (var next in grid.getNeighbors(cell)) {
-  //       if (!visited.contains(next.id)) {
-  //         visited.add(next.id);
-  //         final newPath = [...path, next];
-  //         stack.add(newPath);
-  //         generatedCount++;
-  //       }
-  //     }
-  //   }
-  //
-  //   print("DFS FAILED");
-  //   print("DFS Visited: $visitedCount");
-  //   print("DFS Generated: $generatedCount");
-  //   return [];
-  // }
-
   static List<Cell> _reconstructPath(Map<String, Cell?> parent, Cell goal) {
     final path = <Cell>[];
     Cell? current = goal;

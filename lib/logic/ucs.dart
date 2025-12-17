@@ -2,12 +2,13 @@ import 'package:collection/collection.dart';
 
 import '../models/grid.dart';
 import '../models/cell.dart';
-import 'dart:collection';
 
 class UCS {
   static List<Cell> solve(GridModel grid) {
     final start = grid.find(CellType.start);
     final goal = grid.find(CellType.goal);
+    int visitedCount = 0;
+    int generatedCount = 0;
     if (start == null || goal == null) return [];
 
     final open = PriorityQueue<_Node>((a, b) => a.f.compareTo(b.f));
@@ -29,9 +30,12 @@ class UCS {
 
     while (open.isNotEmpty) {
       final current = open.removeFirst().cell;
+      visitedCount++;
       print(current.index);
 
       if (current == goal) {
+        print("ucs Visited: $visitedCount");
+        print("ucs Generated: $generatedCount");
         return _reconstructPath(parent, goal);
       }
 
@@ -56,10 +60,13 @@ class UCS {
           final f = tentative + h;
 
           open.add(_Node(next, f));
+          generatedCount++;
         }
       }
     }
-
+    print("ucs FAILED");
+    print("ucs Visited: $visitedCount");
+    print("ucs Generated: $generatedCount");
     return [];
   }
 
@@ -67,66 +74,13 @@ class UCS {
     return (a.row - b.row).abs() + (a.col - b.col).abs();
   }
 
-  // List<Cell> aStar(GridModel grid) {
-  //   final start = grid.getStart();
-  //   final goal = grid.getGoal();
-  //
-  //   int visitedCount = 0;
-  //   int generatedCount = 0;
-  //
-  //   final openSet = PriorityQueue<AStarNode>((a, b) => a.f.compareTo(b.f));
-  //   openSet.add(AStarNode(start, g: 0, h: start.distanceTo(goal)));
-  //
-  //   final cameFrom = <String, Cell?>{};
-  //   final gScore = <String, double>{start.id: 0};
-  //   final closedSet = <String>{};
-  //
-  //   while (openSet.isNotEmpty) {
-  //     final current = openSet.removeFirst();
-  //     visitedCount++;
-  //
-  //     if (current.cell.id == goal.id) {
-  //       final path = reconstructPath(cameFrom, current.cell);
-  //       print("A* Visited: $visitedCount");
-  //       print("A* Generated: $generatedCount");
-  //       return path;
-  //     }
-  //
-  //     closedSet.add(current.cell.id);
-  //
-  //     for (var next in grid.getNeighbors(current.cell)) {
-  //       if (closedSet.contains(next.id)) continue;
-  //
-  //       final tentativeG = current.g + 1;
-  //
-  //       if (!gScore.containsKey(next.id) || tentativeG < gScore[next.id]!) {
-  //         cameFrom[next.id] = current.cell;
-  //         gScore[next.id] = tentativeG;
-  //
-  //         final node = AStarNode(
-  //           next,
-  //           g: tentativeG,
-  //           h: next.distanceTo(goal),
-  //         );
-  //
-  //         openSet.add(node);
-  //         generatedCount++;
-  //       }
-  //     }
-  //   }
-  //
-  //   print("A* FAILED");
-  //   print("A* Visited: $visitedCount");
-  //   print("A* Generated: $generatedCount");
-  //   return [];
-  // }
-
   static List<Cell> _reconstructPath(Map<String, Cell?> parent, Cell goal) {
     final path = <Cell>[];
     Cell? current = goal;
 
     while (current != null) {
       path.add(current);
+      print('${current.row},${current.col}');
       current = parent['${current.row},${current.col}'];
     }
 
@@ -140,4 +94,3 @@ class _Node {
 
   _Node(this.cell, this.f);
 }
-
